@@ -221,7 +221,12 @@ def login_user(user: UserLogin):
 # =========================
 
 @app.post("/tickets")
-def create_ticket(ticket: TicketCreate):
+def create_ticket(
+    ticket: TicketCreate,
+    current_user: dict = Depends(
+        require_role("USER", "AGENT", "ADMIN")
+    )
+):
 
     connection = get_db_connection()
     cursor = connection.cursor()
@@ -233,13 +238,16 @@ def create_ticket(ticket: TicketCreate):
             WHERE id = %s
         """
 
-        cursor.execute(check_query, (ticket.created_by,))
+        cursor.execute(
+            check_query,
+            (current_user["user_id"],)
+        )
         user = cursor.fetchone()
 
         if user is None:
             raise HTTPException(
                 status_code=404,
-                detail="User not found"
+                detail="Authenticated user not found"
             )
 
         query = """
@@ -253,7 +261,7 @@ def create_ticket(ticket: TicketCreate):
             ticket.description,
             ticket.priority,
             ticket.category,
-            ticket.created_by
+            current_user["user_id"]
         )
 
         cursor.execute(query, values)
@@ -400,7 +408,12 @@ def get_tickets(
 # =========================
 
 @app.get("/tickets/{ticket_id}")
-def get_ticket(ticket_id: int):
+def get_ticket(
+    ticket_id: int,
+    current_user: dict = Depends(
+        require_role("USER", "AGENT", "ADMIN")
+    )
+):
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
@@ -539,7 +552,13 @@ def assign_ticket(
 # =========================
 
 @app.put("/tickets/{ticket_id}/status")
-def update_ticket_status(ticket_id: int, status: str):
+def update_ticket_status(
+    ticket_id: int,
+    status: str,
+    current_user: dict = Depends(
+        require_role("AGENT", "ADMIN")
+    )
+):
 
     connection = get_db_connection()
     cursor = connection.cursor()
@@ -611,7 +630,12 @@ def update_ticket_status(ticket_id: int, status: str):
 # =========================
 
 @app.delete("/tickets/{ticket_id}")
-def delete_ticket(ticket_id: int):
+def delete_ticket(
+    ticket_id: int,
+    current_user: dict = Depends(
+        require_role("ADMIN")
+    )
+):
 
     connection = get_db_connection()
     cursor = connection.cursor()
