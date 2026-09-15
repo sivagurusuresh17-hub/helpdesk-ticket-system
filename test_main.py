@@ -102,3 +102,73 @@ def test_invalid_ticket():
     )
 
     assert response.status_code == 404
+    # =========================
+# STAGE 19 - AUTHORIZATION TESTS
+# =========================
+
+def test_user_cannot_update_ticket_status():
+    def mock_user():
+        return {
+            "user_id": 1,
+            "email": "user@example.com",
+            "role": "USER"
+        }
+
+    app.dependency_overrides = {}
+
+    from main import get_current_user
+    app.dependency_overrides[get_current_user] = mock_user
+
+    response = client.put(
+        "/tickets/1/status?status=RESOLVED"
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == \
+        "You do not have permission to perform this action"
+
+    app.dependency_overrides = {}
+
+
+def test_agent_cannot_delete_ticket():
+    def mock_user():
+        return {
+            "user_id": 2,
+            "email": "agent@example.com",
+            "role": "AGENT"
+        }
+
+    app.dependency_overrides = {}
+
+    from main import get_current_user
+    app.dependency_overrides[get_current_user] = mock_user
+
+    response = client.delete("/tickets/1")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == \
+        "You do not have permission to perform this action"
+
+    app.dependency_overrides = {}
+
+
+def test_user_cannot_delete_ticket():
+    def mock_user():
+        return {
+            "user_id": 1,
+            "email": "user@example.com",
+            "role": "USER"
+        }
+
+    app.dependency_overrides = {}
+
+    from main import get_current_user
+    app.dependency_overrides[get_current_user] = mock_user
+
+    response = client.delete("/tickets/1")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == \
+        "You do not have permission to perform this action"
+
+    app.dependency_overrides = {}
